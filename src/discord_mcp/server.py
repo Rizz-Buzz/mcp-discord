@@ -66,6 +66,20 @@ async def list_tools() -> List[Tool]:
             }
         ),
         Tool(
+            name="list_channels",
+            description="Get a list of all channels in a Discord server",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "server_id": {
+                        "type": "string",
+                        "description": "Discord server (guild) ID"
+                    }
+                },
+                "required": ["server_id"]
+            }
+        ),
+        Tool(
             name="list_members",
             description="Get a list of members in a server",
             inputSchema={
@@ -536,6 +550,34 @@ async def call_tool(name: str, arguments: Any) -> List[TextContent]:
         return [TextContent(
             type="text",
             text=f"Removed reaction {arguments['emoji']} from message"
+        )]
+
+    elif name == "list_channels":
+        guild = await discord_client.fetch_guild(int(arguments["server_id"]))
+        channels = []
+        
+        # Fetch all channels
+        guild_channels = await guild.fetch_channels()
+        
+        for channel in guild_channels:
+            channel_type = str(channel.type).replace('ChannelType.', '')
+            parent_name = channel.category.name if hasattr(channel, 'category') and channel.category else "No Category"
+            
+            channels.append({
+                "id": str(channel.id),
+                "name": channel.name,
+                "type": channel_type,
+                "category": parent_name,
+                "position": channel.position
+            })
+        
+        # Sort channels by category and position
+        channels.sort(key=lambda c: (c["category"], c["position"]))
+        
+        return [TextContent(
+            type="text",
+            text=f"Channels in server {guild.name} ({len(channels)}):\n" + 
+                "\n".join(f"{c['name']} (ID: {c['id']}, Type: {c['type']}, Category: {c['category']})" for c in channels)
         )]
 
     raise ValueError(f"Unknown tool: {name}")
