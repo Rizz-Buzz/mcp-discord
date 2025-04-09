@@ -292,6 +292,24 @@ async def list_tools() -> List[Tool]:
             }
         ),
         Tool(
+            name="send_direct_message",
+            description="Send a direct message to a user",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "string",
+                        "description": "Discord user ID to send message to"
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Message content"
+                    }
+                },
+                "required": ["user_id", "content"]
+            }
+        ),
+        Tool(
             name="read_messages",
             description="Read recent messages from a channel",
             inputSchema={
@@ -366,6 +384,16 @@ async def call_tool(name: str, arguments: Any) -> List[TextContent]:
         return [TextContent(
             type="text",
             text=f"Message sent successfully. Message ID: {message.id}"
+        )]
+    
+    elif name == "send_direct_message":
+        user = await discord_client.fetch_user(int(arguments["user_id"]))
+        dm_channel = await user.create_dm()
+        message = await dm_channel.send(arguments["content"])
+        
+        return [TextContent(
+            type="text",
+            text=f"Direct message sent successfully to {user.name}. Message ID: {message.id}"
         )]
 
     elif name == "read_messages":
